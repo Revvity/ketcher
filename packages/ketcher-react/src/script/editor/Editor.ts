@@ -206,6 +206,13 @@ class Editor implements KetcherEditor {
   lastEvent: any;
   macromoleculeConvertionError: string | null | undefined;
 
+  domEvents: {
+    target: Node;
+    eventName: string;
+    eventListener: EventListenerOrEventListenerObject;
+    subHandler: (event: any) => void;
+  }[] = [];
+
   constructor(ketcherId, clientArea, options, serverSettings, prevEditor?) {
     this.render = new Render(
       clientArea,
@@ -265,7 +272,7 @@ class Editor implements KetcherEditor {
       updateFloatingTools: new Subscription(),
     };
 
-    domEventSetup(this, clientArea);
+    this.domEvents = domEventSetup(this, clientArea);
     this.render.paper.canvas.setAttribute('data-testid', 'canvas');
   }
 
@@ -276,6 +283,17 @@ class Editor implements KetcherEditor {
       return false;
     }
     return !isEqual(this.historyStack[position - 1], this.#origin);
+  }
+
+  removeSubscriptions(): void {
+    this.hoverIcon.destroy();
+    this.domEvents.forEach((ev) => {
+      ev.target.removeEventListener(ev.eventName, ev.eventListener);
+      const subs = this.event[ev.eventName];
+      subs?.remove(ev.subHandler);
+    });
+
+    this.domEvents = [];
   }
 
   setOrigin(): void {
@@ -1323,8 +1341,22 @@ function useToolIfNeeded(
   return false;
 }
 
-function domEventSetup(editor: Editor, clientArea: HTMLElement) {
+function domEventSetup(
+  editor: Editor,
+  clientArea: HTMLElement,
+): {
+  target: Node;
+  eventName: string;
+  eventListener: EventListenerOrEventListenerObject;
+  subHandler: (event: any) => void;
+}[] {
   // TODO: addEventListener('resize', ...);
+  const res: {
+    target: Node;
+    eventName: string;
+    eventListener: EventListenerOrEventListenerObject;
+    subHandler: (event: any) => void;
+  }[] = [];
   const trackedDomEvents: {
     target: Node;
     eventName: string;
@@ -1376,12 +1408,14 @@ function domEventSetup(editor: Editor, clientArea: HTMLElement) {
     editor.event[eventName] = new DOMSubscription();
     const subs = editor.event[eventName];
 
-    target.addEventListener(eventName, (...args) => {
+    const eventListener: EventListenerOrEventListenerObject = (...args) => {
       if (window.isPolymerEditorTurnedOn) return;
       subs.dispatch(...args);
-    });
+    };
 
-    subs.add((event) => {
+    target.addEventListener(eventName, eventListener);
+
+    const subHandler = (event) => {
       updateLastCursorPosition(editor, event);
 
       if (
@@ -1411,6 +1445,7 @@ function domEventSetup(editor: Editor, clientArea: HTMLElement) {
         }
       }
 
+      // eslint-disable-next-line react-hooks/rules-of-hooks
       const isToolUsed = useToolIfNeeded(
         editor,
         toolEventHandler,
@@ -1424,8 +1459,14 @@ function domEventSetup(editor: Editor, clientArea: HTMLElement) {
       resetSelectionOnCanvasClick(editor, eventName, clientArea, event);
 
       return true;
-    }, -1);
+    };
+
+    subs.add(subHandler, -1);
+
+    res.push({ target, eventName, eventListener, subHandler });
   });
+
+  return res;
 }
 
 export { Editor };

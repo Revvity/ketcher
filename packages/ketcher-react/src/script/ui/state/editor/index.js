@@ -61,6 +61,9 @@ export default function initEditor(dispatch, getState) {
     onInit: (editor) => {
       dispatch({ type: 'INIT', editor });
     },
+    onDone: () => {
+      dispatch({ type: 'DONE' });
+    },
     onChange: (action) => {
       if (action === undefined) sleep(0).then(() => dispatch(resetToSelect()));
       // Editor switched to view only mode

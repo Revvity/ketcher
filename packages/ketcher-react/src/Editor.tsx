@@ -10,6 +10,7 @@ import { Ketcher, Editor as MoleculesEditor, CoreEditor } from 'ketcher-core';
 
 type Props = Omit<EditorProps, 'ketcherId'> & {
   disableMacromoleculesEditor?: boolean;
+  onUnmount?: () => void;
 };
 
 interface MacromoleculesEditorProps {
@@ -85,6 +86,12 @@ export const Editor = (props: Props) => {
   useEffect(() => {
     return () => {
       window.isPolymerEditorTurnedOn = false;
+
+      setTimeout(() => {
+        if (props?.onUnmount) {
+          props?.onUnmount();
+        }
+      });
     };
   }, []);
 

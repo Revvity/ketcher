@@ -29,7 +29,13 @@ function AtomInfo({ el, isInfo }) {
     fontSize: '18px',
   };
   return (
-    <div className={clsx(classes.ket_atom_info, !isInfo && classes.none)}>
+    <div
+      className={clsx(
+        classes.ket_atom_info,
+        !isInfo && classes.none,
+        'acd-atom-info',
+      )}
+    >
       <div style={numberStyle}>{el.number}</div>
       <span style={elemStyle}>{el.label}</span>
       <br />

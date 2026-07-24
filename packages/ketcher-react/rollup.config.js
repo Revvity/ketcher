@@ -28,7 +28,13 @@ const includePattern = 'src/**/*';
 
 const getTagName = () => {
   try {
-    return execSync('git describe --tags --abbrev=0', { encoding: 'utf8' });
+    let tags = execSync('git describe --tags --abbrev=0', {
+      encoding: 'utf8',
+    });
+    if (tags.includes('@acd')) {
+      tags = `v${pkg.version}`;
+    }
+    return tags;
   } catch (error) {
     console.error(error);
     return 'master';

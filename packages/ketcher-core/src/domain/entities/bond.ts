@@ -36,6 +36,8 @@ export interface BondAttributes {
   end: number;
   begin: number;
   cip?: BondCIP | null;
+  endPts?: number[] | null;
+  attach?: string | null;
   isPreview?: boolean;
   initiallySelected?: initiallySelectedType;
   beginSuperatomAttachmentPointNumber?: number;
@@ -110,6 +112,8 @@ export class Bond extends BaseMicromoleculeEntity {
   angle: number;
   center: Vec2;
   isPreview: boolean;
+  endPts: number[] | null;
+  attach: string | null;
   beginSuperatomAttachmentPointNumber?: number;
   endSuperatomAttachmentPointNumber?: number;
   beginSgroup?: SGroup;
@@ -150,6 +154,8 @@ export class Bond extends BaseMicromoleculeEntity {
     }
 
     this.center = new Vec2();
+    this.endPts = attributes.endPts ?? null;
+    this.attach = attributes.attach ?? null;
   }
 
   static getAttrHash(bond: Bond) {

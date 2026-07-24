@@ -76,7 +76,7 @@ export interface AtomAttributes {
   exactChangeFlag?: number;
   rxnFragmentType?: number;
   invRet?: number;
-  aam?: number;
+  aam?: number | string;
   hCount?: number;
   isPreview?: boolean;
   unsaturatedAtom?: number;
@@ -190,7 +190,7 @@ export class Atom extends BaseMicromoleculeEntity {
   badConn: boolean;
   alias: string | null;
   rglabel: string | null;
-  aam: number;
+  aam: number | string;
   invRet: number;
   exactChangeFlag: number;
   rxnFragmentType: number;

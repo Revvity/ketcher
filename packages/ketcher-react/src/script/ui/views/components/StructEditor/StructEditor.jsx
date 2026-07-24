@@ -150,6 +150,9 @@ class StructEditor extends Component {
     setupEditor(this.editor, props, this.props);
   }
 
+  onCursor = cursor.bind(this);
+  onMessage = message.bind(this);
+
   componentDidMount() {
     const prevKetcher = this.props.prevKetcherId
       ? ketcherProvider.getKetcher(this.props.prevKetcherId)
@@ -178,87 +181,9 @@ class StructEditor extends Component {
     setupEditor(this.editor, this.props);
     if (this.props.onInit) this.props.onInit(this.editor);
 
-    this.editor.event.message.add((msg) => {
-      const el = this.logRef.current;
-      if (msg.info && this.props.showAttachmentPoints) {
-        try {
-          const parsedInfo = JSON.parse(msg.info);
-          el.innerHTML = `Atom Id: ${parsedInfo.atomid}, Bond Id: ${parsedInfo.bondid}`;
-        } catch (e) {
-          KetcherLogger.error(
-            'StructEditor.jsx::StructEditor::componentDidMount',
-            e,
-          );
-          el.innerHTML = msg.info;
-        }
-        el.classList.add(classes.visible);
-      } else {
-        el.classList.remove(classes.visible);
-      }
-    });
+    this.editor.event.message.add(this.onMessage);
 
-    this.editor.event.cursor.add((csr) => {
-      let clientX, clientY;
-
-      switch (csr.status) {
-        case 'enable': {
-          this.editorRef.current.classList.add(classes.enableCursor);
-          const { left, top, right, bottom } =
-            this.editorRef.current.getBoundingClientRect();
-
-          clientX = csr.cursorPosition.clientX;
-          clientY = csr.cursorPosition.clientY;
-
-          const handShouldBeShown =
-            clientX >= left &&
-            clientX <= right &&
-            clientY >= top &&
-            clientX <= bottom;
-          if (!this.state.enableCursor && handShouldBeShown) {
-            this.setState({
-              enableCursor: true,
-            });
-          }
-          break;
-        }
-
-        case 'move': {
-          this.editorRef.current.classList.add(classes.enableCursor);
-          this.setState({
-            enableCursor: true,
-            clientX,
-            clientY,
-          });
-          break;
-        }
-
-        case 'disable': {
-          this.editorRef.current.classList.remove(classes.enableCursor);
-          this.setState({
-            enableCursor: false,
-          });
-          break;
-        }
-
-        case 'leave': {
-          this.editorRef.current.classList.remove(classes.enableCursor);
-          this.setState({
-            enableCursor: false,
-          });
-          break;
-        }
-
-        case 'mouseover': {
-          this.editorRef.current.classList.add(classes.enableCursor);
-          this.setState({
-            enableCursor: true,
-          });
-          break;
-        }
-        default:
-          break;
-      }
-    });
+    this.editor.event.cursor.add(this.onCursor);
 
     this.editor.event.message.dispatch({
       info: JSON.stringify(this.props.toolOpts),
@@ -271,6 +196,14 @@ class StructEditor extends Component {
     removeEditorHandlers(this.editor, this.props);
     this.editorRef.current.removeEventListener('wheel', this.handleWheel);
     this.editor.render.unobserveCanvasResize();
+    // TODO: troits fix unmount
+    //     this.editorRef.current = undefined;
+    //     this.editorRef = undefined;
+    //     this.editor.removeSubscriptions();
+    //     this.editor.event.cursor.remove(this.onCursor);
+    //     this.editor.event.message.remove(this.onMessage);
+    //     this.editor = null;
+    //     if (this.props.onDone) this.props.onDone();
   }
 
   render() {
@@ -359,6 +292,88 @@ class StructEditor extends Component {
         <MonomerCreationWizard />
       </Tag>
     );
+  }
+}
+
+function message(msg) {
+  const el = this.logRef.current;
+  if (msg.info && this.props.showAttachmentPoints) {
+    try {
+      const parsedInfo = JSON.parse(msg.info);
+      el.innerHTML = `Atom Id: ${parsedInfo.atomid}, Bond Id: ${parsedInfo.bondid}`;
+    } catch (e) {
+      KetcherLogger.error(
+        'StructEditor.jsx::StructEditor::componentDidMount',
+        e,
+      );
+      el.innerHTML = msg.info;
+    }
+    el.classList.add(classes.visible);
+  } else {
+    el.classList.remove(classes.visible);
+  }
+}
+
+function cursor(csr) {
+  let clientX, clientY;
+
+  switch (csr.status) {
+    case 'enable': {
+      this.editorRef.current.classList.add(classes.enableCursor);
+      const { left, top, right, bottom } =
+        this.editorRef.current.getBoundingClientRect();
+
+      clientX = csr.cursorPosition.clientX;
+      clientY = csr.cursorPosition.clientY;
+
+      const handShouldBeShown =
+        clientX >= left &&
+        clientX <= right &&
+        clientY >= top &&
+        clientX <= bottom;
+      if (!this.state.enableCursor && handShouldBeShown) {
+        this.setState({
+          enableCursor: true,
+        });
+      }
+      break;
+    }
+
+    case 'move': {
+      this.editorRef.current.classList.add(classes.enableCursor);
+      this.setState({
+        enableCursor: true,
+        clientX,
+        clientY,
+      });
+      break;
+    }
+
+    case 'disable': {
+      this.editorRef.current.classList.remove(classes.enableCursor);
+      this.setState({
+        enableCursor: false,
+      });
+      break;
+    }
+
+    case 'leave': {
+      this.editorRef.current.classList.remove(classes.enableCursor);
+      this.setState({
+        enableCursor: false,
+      });
+      break;
+    }
+
+    case 'mouseover': {
+      this.editorRef.current.classList.add(classes.enableCursor);
+      this.setState({
+        enableCursor: true,
+      });
+      break;
+    }
+    default:
+      break;
   }
 }
 

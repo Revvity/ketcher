@@ -454,7 +454,8 @@ export class Ketcher {
 
   async setMolecule(
     structStr: string,
-    options?: SetMoleculeOptions,
+      options?: SetMoleculeOptions,
+     rescale = false
   ): Promise<void | undefined> {
     const macromoleculesEditor = CoreEditor.provideEditorInstance();
     if (macromoleculesEditor?.isSequenceEditInRNABuilderMode) return;
@@ -474,7 +475,9 @@ export class Ketcher {
           this,
         );
 
-        struct.rescale();
+        if (rescale) {
+          struct.rescale();
+        }
 
         const { x, y } = options?.position ?? {};
 

@@ -27,6 +27,7 @@ import { KetcherLogger } from 'utilities';
 import { CoordinateTransformation } from './coordinateTransformation';
 import { ScrollbarContainer } from './scrollbar';
 import { notifyRenderComplete } from './notifyRenderComplete';
+import { v4 as uuid4 } from 'uuid';
 
 export type MonomerCreationRenderState = {
   attachmentPoints: Map<number, number>;
@@ -42,9 +43,10 @@ export class Render {
   public ctab: ReStruct;
   public options: RenderOptions;
   public viewBox!: ViewBox;
+  public hoveredArrowId: string | undefined = undefined;
   private readonly userOpts: RenderOptions;
   private oldCb: Box2Abs | null = null;
-  private scrollbar: ScrollbarContainer;
+  public scrollbar: ScrollbarContainer;
   private resizeObserver: ResizeObserver | null = null;
   private _monomerCreationRenderState: MonomerCreationRenderState = null;
 
@@ -61,6 +63,7 @@ export class Render {
       options.width || '100%',
       options.height || '100%',
     );
+    this.paper.id = uuid4();
     this.sz = this.getCanvasSizeVector();
     this.options = defaultOptions(this.userOpts);
     if (reuseRestructIfExist && currentRender?.ctab) {
@@ -275,6 +278,21 @@ export class Render {
   }
 
   set monomerCreationRenderState(state: MonomerCreationRenderState) {
-    this._monomerCreationRenderState = state;
+      this._monomerCreationRenderState = state;
+  }
+    
+  clearMarkers(ids: string[]): void {
+    const element: HTMLElement = this.paper.defs;
+    const children = element.getElementsByTagName('marker');
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (
+        child.parentNode === element &&
+        child.id.startsWith('raphael-marker-') &&
+        ids.some((id) => child.id.endsWith(id))
+      ) {
+        element.removeChild(child);
+      }
+    }
   }
 }

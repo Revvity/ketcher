@@ -121,7 +121,8 @@ class ReactionMapTool implements Tool {
           } else {
             let aam = 0;
             atoms.forEach((atom) => {
-              aam = Math.max(aam, atom.aam || 0);
+              const aamNum = typeof atom.aam === 'string' ? 0 : atom.aam;
+              aam = Math.max(aam, aamNum);
             });
             action.mergeWith(
               fromAtomsAttrs(

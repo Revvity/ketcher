@@ -63,6 +63,16 @@ function getRootReducer(setEditor) {
         setEditor(action.editor);
       }
 
+      // TODO: troits fix unmount
+      //   case 'DONE':
+      //     if (action.type !== 'INIT') {
+      //       state = {
+      //         editor: undefined,
+      //         server: undefined,
+      //         options: undefined,
+      //       };
+      //     }
+
       case 'UPDATE': {
         const {
           /* eslint-disable @typescript-eslint/no-unused-vars */

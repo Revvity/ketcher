@@ -250,12 +250,21 @@ class IndigoService implements StructService {
     this.ketcherId = ketcherId;
   }
 
-  private getStandardServerOptions(options?: StructServiceOptions) {
+  private getStandardServerOptions(
+    options?: StructServiceOptions,
+    throwError = true,
+  ) {
     if (!options) {
       return this.defaultOptions;
     }
     if (!this.ketcherId) {
-      throw new Error('Cannot getting options because there are no ketcherId');
+      if (throwError) {
+        throw new Error(
+          'Cannot getting options because there are no ketcherId',
+        );
+      } else {
+        return this.defaultOptions;
+      }
     }
 
     return pickStandardServerOptions(this.ketcherId, options);
@@ -752,6 +761,7 @@ class IndigoService implements StructService {
       const action = ({ data }: OutputMessageWrapper) => {
         const msg: OutputMessage<string> = data;
         if (msg.inputData === inputData) {
+          this.EE.removeListener(WorkerEvent.GenerateImageAsBase64, action);
           if (!msg.hasError) {
             resolve(msg.payload);
           } else {
@@ -761,7 +771,7 @@ class IndigoService implements StructService {
       };
 
       const commandOptions: CommandOptions = {
-        ...this.getStandardServerOptions(restOptions),
+        ...this.getStandardServerOptions(restOptions, false),
         'render-label-mode': this.ketcherId
           ? getLabelRenderModeForIndigo(this.ketcherId)
           : undefined,
@@ -797,7 +807,6 @@ class IndigoService implements StructService {
         data: commandData,
       };
 
-      this.EE.removeListener(WorkerEvent.GenerateImageAsBase64, action);
       this.EE.addListener(WorkerEvent.GenerateImageAsBase64, action);
 
       this.worker.postMessage(inputMessage);

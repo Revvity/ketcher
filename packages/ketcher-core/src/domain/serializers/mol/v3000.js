@@ -122,6 +122,10 @@ function parseBondLineV3000(line) {
       params.reactingCenterStatus = utils.parseDecimalInt(value);
     } else if (key === 'STBOX') {
       params.stereoCare = utils.parseDecimalInt(value);
+    } else if (key === 'ENDPTS') {
+      params.endPts = parseBracedNumberList(value, -1);
+    } else if (key === 'ATTACH') {
+      params.attach = value;
     }
   }
   return new Bond(params);

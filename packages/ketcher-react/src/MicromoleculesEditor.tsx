@@ -43,6 +43,7 @@ const mediaSizes = {
 export interface EditorProps extends Omit<Config, 'element' | 'appRoot'> {
   onInit?: (ketcher: Ketcher) => void;
   onSetKetcherId?: (ketcherId: string) => void;
+  onDone?: () => void;
 }
 
 function MicromoleculesEditor(props: EditorProps) {

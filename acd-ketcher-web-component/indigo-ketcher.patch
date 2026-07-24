@@ -1,0 +1,183 @@
+diff --git a/api/wasm/indigo-ketcher/CMakeLists.txt b/api/wasm/indigo-ketcher/CMakeLists.txt
+index 1b1487cb8..206b66d62 100644
+--- a/api/wasm/indigo-ketcher/CMakeLists.txt
++++ b/api/wasm/indigo-ketcher/CMakeLists.txt
+@@ -31,6 +31,7 @@ set(EMCC_COMMON_FLAGS
+         -s FILESYSTEM=1
+         -s ASSERTIONS=1
+         -s USE_SDL=0 -s USE_SDL_IMAGE=0 -s USE_SDL_TTF=0 -s USE_SDL_NET=0
++        -s ENVIRONMENT=web,worker
+         --no-entry
+         ${EMCC_FLAGS}
+         )
+diff --git a/build-indigo-ketcher.cmd b/build-indigo-ketcher.cmd
+new file mode 100644
+index 000000000..69a244bbf
+--- /dev/null
++++ b/build-indigo-ketcher.cmd
+@@ -0,0 +1,88 @@
++@echo off
++setlocal
++
++:: ============================================================
++:: Settings — change only here
++:: ============================================================
++set MY_EMSDK_VERSION=3.1.74
++set MY_EMSDK_DIR=E:\work\emsdk
++set MY_INDIGO_DIR=E:\angular\Indigo
++set MY_BUILD_DIR=%MY_INDIGO_DIR%\build
++set MY_BIN_DIR=%MY_BUILD_DIR%\bin
++set MY_WASM_SRC_DIR=%MY_INDIGO_DIR%\api\wasm\indigo-ketcher
++
++:: ============================================================
++:: Step 1: Activate Emscripten
++:: ============================================================
++echo === Step 1: Activating Emscripten %MY_EMSDK_VERSION% ===
++call %MY_EMSDK_DIR%\emsdk activate %MY_EMSDK_VERSION%
++if %errorlevel% neq 0 ( echo ERROR: emsdk activate failed & exit /b 1 )
++
++call %MY_EMSDK_DIR%\emsdk_env.bat
++
++:: ============================================================
++:: Step 2: Prepare build directory
++:: ============================================================
++echo === Step 2: Preparing build directory ===
++cd /d %MY_INDIGO_DIR%
++if exist build rmdir /s /q build
++mkdir build
++
++:: ============================================================
++:: Step 3: CMake configuration
++:: ============================================================
++echo === Step 3: Running cmake ===
++cmd /c "emcmake cmake %MY_INDIGO_DIR% -DCMAKE_BUILD_TYPE=Release -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_C_FLAGS=-Wno-incompatible-pointer-types -DCMAKE_EXE_LINKER_FLAGS=-sENVIRONMENT=web,worker -DCMAKE_SHARED_LINKER_FLAGS=-sENVIRONMENT=web,worker -B %MY_BUILD_DIR%"
++if %errorlevel% neq 0 ( echo ERROR: cmake failed & exit /b 1 )
++echo OK: cmake done
++
++:: ============================================================
++:: Step 4: Build ninja targets
++:: ============================================================
++echo === Step 4: Building with ninja ===
++
++echo Building indigo-ketcher...
++cmd /c "ninja -C %MY_BUILD_DIR% indigo-ketcher"
++if %errorlevel% neq 0 ( echo ERROR: indigo-ketcher failed & exit /b 1 )
++echo OK: indigo-ketcher
++
++echo Building indigo-ketcher-separate...
++cmd /c "ninja -C %MY_BUILD_DIR% indigo-ketcher-separate"
++if %errorlevel% neq 0 ( echo ERROR: indigo-ketcher-separate failed & exit /b 1 )
++echo OK: indigo-ketcher-separate
++
++echo Building indigo-ketcher-norender...
++cmd /c "ninja -C %MY_BUILD_DIR% indigo-ketcher-norender"
++if %errorlevel% neq 0 ( echo ERROR: indigo-ketcher-norender failed & exit /b 1 )
++echo OK: indigo-ketcher-norender
++
++echo Building indigo-ketcher-separate-norender...
++cmd /c "ninja -C %MY_BUILD_DIR% indigo-ketcher-separate-norender"
++if %errorlevel% neq 0 ( echo ERROR: indigo-ketcher-separate-norender failed & exit /b 1 )
++echo OK: indigo-ketcher-separate-norender
++
++:: ============================================================
++:: Step 5: Copy package.json, LICENSE, README.md
++:: ============================================================
++echo === Step 5: Copying package files ===
++
++copy /y %MY_WASM_SRC_DIR%\package.json %MY_BIN_DIR%\
++if %errorlevel% neq 0 ( echo ERROR: copy package.json failed & exit /b 1 )
++echo OK: package.json
++
++copy /y %MY_WASM_SRC_DIR%\README.md %MY_BIN_DIR%\
++if %errorlevel% neq 0 ( echo ERROR: copy README.md failed & exit /b 1 )
++echo OK: README.md
++
++copy /y %MY_INDIGO_DIR%\LICENSE %MY_BIN_DIR%\
++if %errorlevel% neq 0 ( echo ERROR: copy LICENSE failed & exit /b 1 )
++echo OK: LICENSE
++
++:: ============================================================
++:: Summary
++:: ============================================================
++echo.
++echo ================================
++echo SUCCESS: All targets built!
++echo ================================
++dir %MY_BIN_DIR%
+\ No newline at end of file
+diff --git a/core/render2d/render_internal.h b/core/render2d/render_internal.h
+index 7f271d739..c88c98b06 100644
+--- a/core/render2d/render_internal.h
++++ b/core/render2d/render_internal.h
+@@ -133,7 +133,7 @@ namespace indigo
+         int _findClosestCircle(Vec2f& p, int aid, float radius, int skip = -1);
+         int _findClosestBox(Vec2f& p, int aid, const Vec2f& sz, float mrg, int skip = -1);
+         void _preparePseudoAtom(int aid, int color, bool highlighted);
+-        void _prepareChargeLabel(int aid, int color, bool highlighted);
++        int _prepareChargeLabel(int aid, int color, bool highlighted);
+         void _prepareCIPLabel(const int aid, int& skip);
+         void _prepareLabelText(int aid);
+         void _reverseLabelText(const int aid);
+diff --git a/core/render2d/src/render_internal.cpp b/core/render2d/src/render_internal.cpp
+index a06786bb7..0a2b288c1 100644
+--- a/core/render2d/src/render_internal.cpp
++++ b/core/render2d/src/render_internal.cpp
+@@ -2978,10 +2978,11 @@ void MoleculeRenderInternal::_preparePseudoAtom(int aid, int color, bool highlig
+     }
+ }
+ 
+-void MoleculeRenderInternal::_prepareChargeLabel(int aid, int color, bool highlighted)
++int MoleculeRenderInternal::_prepareChargeLabel(int aid, int color, bool highlighted)
+ {
+     AtomDesc& ad = _ad(aid);
+     BaseMolecule& bm = *_mol;
++    int giChargeSign = -1;
+ 
+     int charge = bm.getAtomCharge(aid);
+     if (charge != CHARGE_UNKNOWN && charge != 0)
+@@ -3002,7 +3003,7 @@ void MoleculeRenderInternal::_prepareChargeLabel(int aid, int color, bool highli
+         }
+ 
+         GraphItem::TYPE type = charge > 0 ? GraphItem::PLUS : GraphItem::MINUS;
+-        int giChargeSign = _pushGraphItem(ad, RenderItem::RIT_CHARGESIGN, color, highlighted);
++        giChargeSign = _pushGraphItem(ad, RenderItem::RIT_CHARGESIGN, color, highlighted);
+ 
+         GraphItem& itemChargeSign = _data.graphitems[giChargeSign];
+         _cw.setGraphItemSizeSign(itemChargeSign, type);
+@@ -3011,6 +3012,8 @@ void MoleculeRenderInternal::_prepareChargeLabel(int aid, int color, bool highli
+         _expandBoundRect(ad, itemChargeSign);
+         ad.rightMargin += itemChargeSign.bbsz.x;
+     }
++
++    return giChargeSign;
+ }
+ 
+ void MoleculeRenderInternal::_prepareCIPLabel(const int aid, int& skip)
+@@ -3260,7 +3263,7 @@ void MoleculeRenderInternal::_prepareLabelText(int aid)
+         }
+ 
+         // charge
+-        _prepareChargeLabel(aid, color, highlighted);
++        giChargeSign = _prepareChargeLabel(aid, color, highlighted);
+ 
+         // valence
+         int valence = bm.getExplicitValence(aid);
+@@ -3310,6 +3313,18 @@ void MoleculeRenderInternal::_prepareLabelText(int aid)
+                     itemRadical.bbp.copy(ltc);
+                 }
+                 _expandBoundRect(ad, itemRadical);
++
++                if (giChargeSign >= 0)
++                {
++                    GraphItem& itemCharge = _data.graphitems[giChargeSign];
++                    itemRadical.bbp.x = itemCharge.bbp.x
++                                                + itemCharge.bbsz.x
++                                                + _settings.unit;
++                    itemRadical.bbp.y = itemCharge.bbp.y
++                                                + (itemCharge.bbsz.y - itemRadical.bbsz.y) / 2;
++                    _expandBoundRect(ad, itemRadical);
++                    ad.rightMargin = itemRadical.bbp.x + itemRadical.bbsz.x;
++                }
+             }
+             else
+             {

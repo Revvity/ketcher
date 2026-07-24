@@ -1,0 +1,43 @@
+@use 'sass:meta';
+@import '../../node_modules/miew/dist/miew.min.css';
+@import '../../node_modules/ketcher-react/dist/index.css';
+
+acd-ketcher-editor,
+.ketcher-portal-container {
+  display: block;
+}
+
+.acd-elements-table-class {
+  scale: 1.4;
+
+  .acd-period-table-class {
+    left: 0;
+    right: 0;
+  }
+
+  .acd-footer-class {
+    scale: 0.8;
+    width: 640px;
+    margin-left: -54px;
+    margin-bottom: -6px;
+  }
+}
+
+acd-ketcher-periodic-table {
+  display: block;
+}
+
+.acd-periodic-table-wrapper {
+  position: relative;
+  margin-bottom: 10px;
+  margin-right: 15px;
+  transform: scale(1.4);
+  transform-origin: top left;
+  width: 520px;
+
+  .acd-atom-info {
+    scale: 0.9;
+    top: 0.2em;
+    left: 18.5em;
+  }
+}

@@ -38,7 +38,7 @@ import { Render } from '../raphaelRender';
 import { Scale } from 'domain/helpers';
 import draw from '../draw';
 import util from '../util';
-import { tfx } from 'utilities';
+import { IS_ACD, tfx } from 'utilities';
 import {
   RenderOptions,
   RenderOptionStyles,
@@ -91,6 +91,12 @@ class ReAtom extends ReObject {
     rectangle: any;
   };
 
+  forceAttrs?: any;
+  highlightStyle: any;
+  fillColor: string | null | undefined = null;
+  fillScale: number | null | undefined = null;
+  previewColor: string | null | undefined = null;
+  prePreviewColor: string | null | undefined = null;
   private expandedMonomerAttachmentPoints?: any; // Raphael paths
 
   constructor(atom: Atom) {
@@ -103,6 +109,7 @@ class ReAtom extends ReObject {
 
     this.color = '#000000';
     this.component = -1;
+    this.highlightStyle = {};
   }
 
   static isSelectable(): true {
@@ -199,13 +206,73 @@ class ReAtom extends ReObject {
 
   getUnlabeledSelectionContour(render: Render, highlightPadding = 0) {
     const { paper, options } = render;
-    const { atomSelectionPlateRadius } = options;
+    let { atomSelectionPlateRadius } = options;
     const ps = Scale.modelToCanvas(this.a.pp, options);
-    return paper.circle(
-      ps.x,
-      ps.y,
-      atomSelectionPlateRadius + highlightPadding,
-    );
+    if (this.hasDecoration()) {
+      atomSelectionPlateRadius *= this.fillScale ?? 1;
+      let decoration = this.fillColor
+        ? paper
+            .circle(ps.x, ps.y, atomSelectionPlateRadius)
+            .attr(render.options.selectionStyle)
+            .attr({ fill: this.fillColor })
+        : null;
+      if (this.previewColor) {
+        const previewCircle = paper
+          .circle(ps.x, ps.y, atomSelectionPlateRadius * 0.7)
+          .attr(render.options.selectionStyle)
+          .attr({ fill: this.previewColor });
+        if (decoration) {
+          const set = paper.set();
+          set.push(previewCircle);
+          set.push(decoration);
+          decoration = set;
+        } else {
+          decoration = previewCircle;
+        }
+      } else {
+        if (this.prePreviewColor) {
+          const set = paper.set();
+
+          const d = `M${ps.x},${ps.y - atomSelectionPlateRadius * 0.7}
+            a${atomSelectionPlateRadius * 0.7},${atomSelectionPlateRadius * 0.7}
+            0 0,1
+            0,${2 * atomSelectionPlateRadius * 0.7}
+            a${atomSelectionPlateRadius * 0.7},${atomSelectionPlateRadius * 0.7}
+            0 0,1
+            0,-${2 * atomSelectionPlateRadius * 0.7}
+            M${ps.x},${ps.y - atomSelectionPlateRadius * 0.5}
+            a${atomSelectionPlateRadius * 0.5},${atomSelectionPlateRadius * 0.5}
+            0 0,0
+            0,${2 * atomSelectionPlateRadius * 0.5}
+            a${atomSelectionPlateRadius * 0.5},${atomSelectionPlateRadius * 0.5}
+            0 0,0
+            0,-${2 * atomSelectionPlateRadius * 0.5}`;
+
+          const prePreviewCircle = paper
+            .path(d)
+            .attr(render.options.selectionStyle)
+            .attr({ fill: this.prePreviewColor });
+
+          set.push(prePreviewCircle);
+
+          if (decoration) {
+            set.push(decoration);
+          }
+          return set;
+        }
+      }
+      return decoration;
+    } else {
+      return paper.circle(
+        ps.x,
+        ps.y,
+        atomSelectionPlateRadius + highlightPadding,
+      );
+    }
+  }
+
+  hasDecoration() {
+    return this.fillColor || this.previewColor || this.prePreviewColor;
   }
 
   getSelectionContour(render: Render, highlightPadding = 0) {
@@ -213,7 +280,7 @@ class ReAtom extends ReObject {
       (this.a.pseudo && this.a.pseudo.length > 1 && !getQueryAttrsText(this)) ||
       (this.showLabel && this.a.implicitH !== 0);
 
-    return hasLabel
+    return hasLabel && !this.hasDecoration()
       ? this.getLabeledSelectionContour(render, highlightPadding)
       : this.getUnlabeledSelectionContour(render, highlightPadding);
   }
@@ -265,7 +332,10 @@ class ReAtom extends ReObject {
     if (this.isPlateShouldBeHidden(atom, render)) {
       return null;
     }
-    return this.getSelectionContour(render).attr(options.selectionStyle);
+    const contour = this.getSelectionContour(render);
+    return this.hasDecoration()
+      ? contour
+      : contour.attr(options.selectionStyle);
   }
 
   private isNeedShiftForCharge(showCharge: boolean, bondLength: number) {
@@ -647,18 +717,21 @@ class ReAtom extends ReObject {
     }
 
     if (aamText.length > 0) {
-      text += `.${aamText}.`;
+      text += typeof this.a.aam === 'string' ? `${aamText}` : `.${aamText}.`;
     }
 
     if (text.length > 0) {
       const elem = Elements.get(this.a.label);
-      const aamPath = render.paper.text(ps.x, ps.y, text).attr({
+      const tmpPath = render.paper.text(ps.x, ps.y, text).attr({
         font: options.font,
-        'font-size': options.fontszsubInPx,
+        'font-size': options.fontszsubInPx * options.fontLabelRatio,
         fill:
           options.atomColoring && elem ? ElementColor[this.a.label] : '#000',
       });
-      if (stereoLabel) {
+
+      const aamPath = this.forceAttrs ? tmpPath.attr(this.forceAttrs) : tmpPath;
+
+      if (stereoLabel && !this.forceAttrs) {
         // use dom element to change color of stereo label which is the first element
         // of just created text
         // text -> tspan
@@ -678,7 +751,7 @@ class ReAtom extends ReObject {
       }
       // estimate the shift backwards to account for the size of the aam/query text box itself
       t += util.shiftRayBox(ps, dir.negated(), Box2Abs.fromRelBox(aamBox));
-      dir = dir.scaled(8 + t);
+      dir = aamText.length > 0 ? dir.scaled(2 + t) : dir.scaled(8 + t);
       pathAndRBoxTranslate(aamPath, aamBox, dir.x, dir.y);
       restruct.addReObjectPath(LayerMap.data, this.visel, aamPath, ps, true);
 
@@ -1160,8 +1233,6 @@ function getLabelText(atom, atomId: number, sgroup?: SGroup, options?: any) {
 
   if (atom.atomList !== null) return atom.atomList.label();
 
-  if (atom.pseudo) return atom.pseudo;
-
   if (atom.alias) return atom.alias;
 
   if (
@@ -1390,7 +1461,7 @@ function showHydrogen(
     pathAndRBoxTranslate(
       hydrogen.path,
       hydrogen.rbb,
-      data.rightMargin + 0.35 * hydrogen.rbb.width + delta,
+      data.rightMargin + (IS_ACD ? 0.5 : 0.35) * hydrogen.rbb.width + delta,
       0,
     );
     data.rightMargin += hydrogen.rbb.width + delta;
@@ -1410,7 +1481,9 @@ function showHydrogen(
         hydroIndex.path,
         hydroIndex.rbb,
         data.rightMargin +
-          0.15 * hydroIndex.rbb.width * (options.zoom > 1 ? 1 : options.zoom) +
+          (IS_ACD ? 0.5 : 0.15) *
+            hydroIndex.rbb.width *
+            (options.zoom > 1 ? 1 : options.zoom) +
           delta,
         0.2 * atom.label!.rbb.height,
       );
@@ -1422,7 +1495,7 @@ function showHydrogen(
       pathAndRBoxTranslate(
         hydroIndex.path,
         hydroIndex.rbb,
-        data.leftMargin - 0.4 * hydroIndex.rbb.width - delta,
+        data.leftMargin - (IS_ACD ? 0.5 : 0.4) * hydroIndex.rbb.width - delta,
         0.2 * atom.label!.rbb.height,
       );
       data.leftMargin -= hydroIndex.rbb.width + delta;
@@ -1431,7 +1504,7 @@ function showHydrogen(
       hydrogen.path,
       hydrogen.rbb,
       data.leftMargin -
-        0.4 *
+        (IS_ACD ? 0.5 : 0.4) *
           hydrogen.rbb.width *
           (implh > 1 && options.zoom < 1 ? options.zoom : 1) -
         delta,
@@ -1468,7 +1541,7 @@ function showWarning(
 
 function getAamText(atom) {
   let aamText = '';
-  if (atom.a.aam > 0) aamText += atom.a.aam;
+  if (atom.a.aam > 0 || typeof atom.a.aam === 'string') aamText += atom.a.aam;
   if (atom.a.invRet > 0) {
     if (aamText.length > 0) aamText += ',';
     if (atom.a.invRet === 1) aamText += 'Inv';

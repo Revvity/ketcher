@@ -14,8 +14,16 @@
  * limitations under the License.
  ***************************************************************************/
 
+import { ElementsTable } from './script/ui/views/modal/components/PeriodTable/components';
+import AtomInfo from './script/ui/views/modal/components/PeriodTable/components/AtomInfo';
+
 export * from './Editor';
 export * from './script';
 export * from './constants';
 export * from './components';
 export { AppContext } from './contexts';
+
+export { couldBeSaved } from './script/ui/data/convert/structConverter';
+
+export { ElementsTable };
+export { AtomInfo };

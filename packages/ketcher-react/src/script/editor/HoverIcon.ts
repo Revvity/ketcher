@@ -41,6 +41,13 @@ export class HoverIcon {
     clientArea.addEventListener('mouseleave', this.onMouseLeave);
   }
 
+  destroy() {
+    const clientArea = this.editor.render.clientArea;
+    document.removeEventListener('mousemove', this.onMouseMove);
+    clientArea.removeEventListener('mouseover', this.onMouseMove);
+    clientArea.removeEventListener('mouseleave', this.onMouseLeave);
+  }
+
   set fill(fillColor: AtomColor | '') {
     this._fill = fillColor;
     this.element.attr('fill', fillColor);

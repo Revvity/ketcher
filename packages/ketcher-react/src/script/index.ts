@@ -72,3 +72,5 @@ export default buildKetcherAsync;
 
 export * from './ui/views/toolbars/ArrowScroll';
 export * from './ui/views/toolbars/ToolbarGroupItem/ToolbarMultiToolItem/usePortalStyle';
+export * from './ui/views/modal/components/PeriodTable/components/ElementsTable';
+export * from './ui/views/modal/components/PeriodTable/components/AtomInfo';

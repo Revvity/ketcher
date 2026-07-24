@@ -47,6 +47,7 @@ import { ReRGroupAttachmentPoint } from './rergroupAttachmentPoint';
 import { ReImage } from 'application/render/restruct/reImage';
 import { IMAGE_KEY, MULTITAIL_ARROW_KEY } from 'domain/constants';
 import { ReMultitailArrow } from './remultitailArrow';
+import { ReCorrArrow } from './recorrarrow';
 
 class ReStruct {
   public static readonly maps = {
@@ -65,6 +66,7 @@ class ReStruct {
     texts: ReText,
     [IMAGE_KEY]: ReImage,
     [MULTITAIL_ARROW_KEY]: ReMultitailArrow,
+    corrArrows: ReCorrArrow,
   } as const;
 
   public render: Render;
@@ -92,6 +94,7 @@ class ReStruct {
   private layers: Record<LayerMap, any> = {} as Record<LayerMap, unknown>;
   public connectedComponents: Pool = new Pool();
   private ccFragmentType: Pool = new Pool();
+  public corrArrows: Pool = new Pool();
   private structChanged = false;
   public needRecalculateVisibleAtomsAndBonds = false;
 
@@ -105,6 +108,7 @@ class ReStruct {
   private textsChanged: Map<number, ReText> = new Map();
   private imagesChanged = new Map<number, ReImage>();
   private multitailArrowsChanged = new Map<number, ReMultitailArrow>();
+  private corrArrowsChanged: Map<number, ReCorrArrow> = new Map();
   private snappingBonds: number[] = [];
 
   constructor(
@@ -586,6 +590,7 @@ class ReStruct {
     this.showTexts();
     this.showImages();
     this.showMultitailArrows();
+    this.showCorrArrows();
     this.clearMarks();
 
     return true;
@@ -669,6 +674,51 @@ class ReStruct {
     this.rgroups.forEach((rgroup, id) => {
       rgroup.show(this, id, options);
     });
+  }
+
+  showCorrArrows(): void {
+    const options = this.render.options;
+
+    this.corrArrowsChanged.forEach((_value, id) => {
+      const arrow = this.corrArrows.get(id);
+
+      arrow.show(this, options);
+    });
+  }
+
+  setCorrArrows(params) {
+    const ids: string[] = [];
+
+    this.corrArrows.forEach((arr) => {
+      const corr = arr as ReCorrArrow;
+      corr.hideArrowTooltip();
+
+      corr.visel.paths.forEach((path) => {
+        if (path.type === 'set') {
+          for (let i = 0; i < path.length; i++) {
+            const id = path[i].id;
+            if (!ids.includes(id)) ids.push(id);
+          }
+        } else {
+          if (!ids.includes(path.id)) ids.push(path.id);
+        }
+      });
+
+      this.clearVisel(arr.visel);
+    });
+
+    this.render.clearMarkers(ids);
+    this.corrArrows.clear();
+    this.render.hoveredArrowId = undefined;
+    if (!params) {
+      return;
+    }
+
+    for (let i = 0; i < params.length; i++) {
+      const reCorr = new ReCorrArrow(params[i]);
+      this.corrArrows.set(i, reCorr);
+      this.markItem('corrArrows', i, 1);
+    }
   }
 
   loopRemove(loopId: number): void {
@@ -844,6 +894,7 @@ class ReStruct {
           }
 
           this.showItemSelection(item, selected);
+          item.selectionPlate?.toBack();
         });
       }
     });
@@ -906,6 +957,10 @@ class ReStruct {
 
   isSnappingBond(bondId: number) {
     return this.snappingBonds.includes(bondId);
+  }
+
+  getLayers() {
+    return this.layers;
   }
 }
 

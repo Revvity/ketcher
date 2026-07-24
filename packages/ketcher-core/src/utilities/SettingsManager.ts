@@ -18,7 +18,16 @@ import { KetcherLogger } from './KetcherLogger';
 import { LayoutMode } from 'application/editor';
 
 export const KETCHER_SAVED_SETTINGS_KEY = 'ketcher_editor_saved_settings';
-export const KETCHER_SAVED_OPTIONS_KEY = 'ketcher-opts';
+// eslint-disable-next-line dot-notation
+export const IS_ACD = !!window['acdKetcherInitializer'];
+
+const storagePrefix = `acd${document.baseURI
+  .slice(location.origin.length)
+  .replace(/\//g, '.')}`;
+
+export const KETCHER_SAVED_OPTIONS_KEY = IS_ACD
+  ? `${storagePrefix}acd-ketcher-opts`
+  : 'ketcher-opts';
 
 export type EditorLineLength = Record<
   Exclude<LayoutMode, 'flex-layout-mode'>,

@@ -146,7 +146,7 @@ export const Dialog: FC<PropsWithChildren & Props> = (props) => {
       </div>
 
       {(footerContent || buttons.length > 0) && (
-        <footer className={styles.footer}>
+        <footer className={styles.footer + ` acd-footer-class`}>
           {footerContent}
           {buttons.length > 0 &&
             buttons.map((button) =>

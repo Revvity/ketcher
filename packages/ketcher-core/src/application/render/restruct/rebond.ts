@@ -42,6 +42,8 @@ class ReBond extends ReObject {
   neihbid1 = -1;
   neihbid2 = -1;
   boldStereo?: boolean;
+  fillColor: string | null | undefined;
+  fillScale: number | null | undefined;
   rbb?: { x: number; y: number; width: number; height: number };
   cip?: {
     // Raphael paths
@@ -54,6 +56,7 @@ class ReBond extends ReObject {
     super('bond');
     this.b = bond; // TODO rename b to item
     this.doubleBondShift = 0;
+    this.fillColor = null;
   }
 
   static isSelectable() {
@@ -294,9 +297,50 @@ class ReBond extends ReObject {
       return null;
     }
 
-    const rect = this.getSelectionContour(restruct.render, false);
+    const beginAtomIdx = this.b.begin;
+    const endAtomIdx = this.b.end;
+    const render = restruct.render;
+    const atomBegin = render?.ctab.atoms.get(beginAtomIdx);
+    const atomEnd = render?.ctab.atoms.get(endAtomIdx);
 
-    return rect.attr(options.selectionStyle);
+    if (this.fillColor && atomBegin && atomEnd) {
+      const fillScale = this.fillScale ?? 1;
+      let psBegin = Scale.modelToCanvas(atomBegin.a.pp, render.options);
+      let psEnd = Scale.modelToCanvas(atomEnd.a.pp, render.options);
+
+      if (atomEnd.a.pp.x < atomBegin.a.pp.x) {
+        psBegin = Scale.modelToCanvas(atomEnd.a.pp, render.options);
+        psEnd = Scale.modelToCanvas(atomBegin.a.pp, render.options);
+      }
+
+      const v = new Vec2(psEnd.x - psBegin.x, psEnd.y - psBegin.y)
+        .turnLeft()
+        .normalized()
+        .scaled(render.options.atomSelectionPlateRadius * fillScale);
+
+      const x1 = psBegin.x + v.x;
+      const y1 = psBegin.y + v.y;
+
+      const x2 = psEnd.x + v.x;
+      const y2 = psEnd.y + v.y;
+
+      const x3 = psEnd.x - v.x;
+      const y3 = psEnd.y - v.y;
+
+      const x4 = psBegin.x - v.x;
+      const y4 = psBegin.y - v.y;
+
+      const path = `M${x1} ${y1}L${x2} ${y2}L${x3} ${y3}L${x4} ${y4}Z`;
+
+      return render.paper
+        .path(path)
+        .attr(render.options.selectionStyle)
+        .attr({ fill: this.fillColor });
+    } else {
+      const rect = this.getSelectionContour(restruct.render, false);
+
+      return rect.attr(options.selectionStyle);
+    }
   }
 
   private isPlateShouldBeHidden = (

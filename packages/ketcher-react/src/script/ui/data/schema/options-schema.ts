@@ -20,6 +20,7 @@ import {
   ShowHydrogenLabels,
   ShowHydrogenLabelNames,
   defaultBondThickness,
+  IS_ACD,
 } from 'ketcher-core';
 import Ajv, { SchemaObject } from 'ajv';
 
@@ -59,44 +60,7 @@ const editor: {
   },
 };
 
-const render: {
-  showValenceWarnings: ExtendedSchema;
-  atomColoring: ExtendedSchema;
-  showStereoFlags: ExtendedSchema;
-  stereoLabelStyle: ExtendedSchema;
-  colorOfAbsoluteCenters: ExtendedSchema;
-  colorOfAndCenters: ExtendedSchema;
-  colorOfOrCenters: ExtendedSchema;
-  colorStereogenicCenters: ExtendedSchema;
-  autoFadeOfStereoLabels: ExtendedSchema;
-  absFlagLabel: ExtendedSchema;
-  andFlagLabel: ExtendedSchema;
-  mixedFlagLabel: ExtendedSchema;
-  ignoreChiralFlag: ExtendedSchema;
-  orFlagLabel: ExtendedSchema;
-  font: ExtendedSchema;
-  fontsz: ExtendedSchema;
-  fontszUnit: ExtendedSchema;
-  fontszsub: ExtendedSchema;
-  fontszsubUnit: ExtendedSchema;
-  carbonExplicitly: ExtendedSchema;
-  showCharge: ExtendedSchema;
-  showValence: ExtendedSchema;
-  showHydrogenLabels: ExtendedSchema;
-  aromaticCircle: ExtendedSchema;
-  bondSpacing: ExtendedSchema;
-  bondThickness: ExtendedSchema;
-  bondThicknessUnit: ExtendedSchema;
-  stereoBondWidth: ExtendedSchema;
-  stereoBondWidthUnit: ExtendedSchema;
-  bondLength: ExtendedSchema;
-  bondLengthUnit: ExtendedSchema;
-  reactionComponentMarginSize: ExtendedSchema;
-  reactionComponentMarginSizeUnit: ExtendedSchema;
-  hashSpacing: ExtendedSchema;
-  hashSpacingUnit: ExtendedSchema;
-  imageResolution: ExtendedSchema;
-} = {
+const ketDefaultOptions = {
   showValenceWarnings: {
     title: 'Show valence warnings',
     type: 'boolean',
@@ -327,6 +291,69 @@ const render: {
   },
 };
 
+type TOptions = typeof ketDefaultOptions;
+type TOptionsChanges = {
+  [key in keyof TOptions]?: TOptions[key]['default'];
+};
+
+function getModifiedOptions(
+  options: TOptions,
+  changes: TOptionsChanges,
+): TOptions {
+  return Object.keys(changes).reduce(
+    (res, key) => {
+      res[key] = { ...res[key], default: changes[key] };
+
+      return res;
+    },
+    { ...options },
+  );
+}
+const acdDefaultOptions = getModifiedOptions(ketDefaultOptions, {
+  showStereoFlags: false,
+  stereoLabelStyle: StereLabelStyleType.On,
+  ignoreChiralFlag: true,
+});
+
+const render: {
+  showValenceWarnings: ExtendedSchema;
+  atomColoring: ExtendedSchema;
+  showStereoFlags: ExtendedSchema;
+  stereoLabelStyle: ExtendedSchema;
+  colorOfAbsoluteCenters: ExtendedSchema;
+  colorOfAndCenters: ExtendedSchema;
+  colorOfOrCenters: ExtendedSchema;
+  colorStereogenicCenters: ExtendedSchema;
+  autoFadeOfStereoLabels: ExtendedSchema;
+  absFlagLabel: ExtendedSchema;
+  andFlagLabel: ExtendedSchema;
+  mixedFlagLabel: ExtendedSchema;
+  ignoreChiralFlag: ExtendedSchema;
+  orFlagLabel: ExtendedSchema;
+  font: ExtendedSchema;
+  fontsz: ExtendedSchema;
+  fontszUnit: ExtendedSchema;
+  fontszsub: ExtendedSchema;
+  fontszsubUnit: ExtendedSchema;
+  carbonExplicitly: ExtendedSchema;
+  showCharge: ExtendedSchema;
+  showValence: ExtendedSchema;
+  showHydrogenLabels: ExtendedSchema;
+  aromaticCircle: ExtendedSchema;
+  bondSpacing: ExtendedSchema;
+  bondThickness: ExtendedSchema;
+  bondThicknessUnit: ExtendedSchema;
+  stereoBondWidth: ExtendedSchema;
+  stereoBondWidthUnit: ExtendedSchema;
+  bondLength: ExtendedSchema;
+  bondLengthUnit: ExtendedSchema;
+  reactionComponentMarginSize: ExtendedSchema;
+  reactionComponentMarginSizeUnit: ExtendedSchema;
+  hashSpacing: ExtendedSchema;
+  hashSpacingUnit: ExtendedSchema;
+  imageResolution: ExtendedSchema;
+} = IS_ACD ? acdDefaultOptions : ketDefaultOptions;
+
 const server: {
   'smart-layout': ExtendedSchema;
   'ignore-stereochemistry-errors': ExtendedSchema;
@@ -352,7 +379,7 @@ const server: {
     title: 'Ignore the chiral flag',
     type: 'boolean',
     description: 'slider',
-    default: false,
+    default: !!IS_ACD,
   },
   'ignore-stereochemistry-errors': {
     title: 'Ignore stereochemistry errors',

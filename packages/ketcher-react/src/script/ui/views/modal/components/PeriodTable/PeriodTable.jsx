@@ -108,7 +108,7 @@ class Table extends Component {
     return (
       <Dialog
         headerContent={<HeaderContent />}
-        className={classes.elementsTable}
+        className={classes.elementsTable + ` acd-elements-table-class`}
         params={this.props}
         result={this.result}
         buttons={['Cancel', 'OK']}
@@ -120,7 +120,7 @@ class Table extends Component {
           ) : null
         }
       >
-        <div className={classes.periodTable}>
+        <div className={classes.periodTable + ` acd-period-table-class`}>
           <AtomInfo el={this.state.current} isInfo={this.state.isInfo} />
           <ElementsTable
             value={value}
