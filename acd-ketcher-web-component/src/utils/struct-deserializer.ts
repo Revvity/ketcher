@@ -25,19 +25,14 @@ export function findMarkushShadows(struct: Struct): Map<number, number[]> | null
 }
 
 class StructServiceCreator {
-  private static srv: IKCNullable<StructService>;
+  private static srv: IKCNullable<Promise<StructService>>;
 
   public static async getStructService(): Promise<StructService> {
-    if (StructServiceCreator.srv) {
-      return StructServiceCreator.srv;
-    }
-
-    const k = await import('ketcher-standalone');
-    const structServiceProvider = new k.StandaloneStructServiceProvider() as StructServiceProvider;
-
-    StructServiceCreator.srv = structServiceProvider.createStructService(
-      DefaultStructServiceOptions,
-    );
+    StructServiceCreator.srv ??= import('ketcher-standalone').then((k) => {
+      const structServiceProvider =
+        new k.StandaloneStructServiceProvider() as StructServiceProvider;
+      return structServiceProvider.createStructService(DefaultStructServiceOptions);
+    });
 
     return StructServiceCreator.srv;
   }
