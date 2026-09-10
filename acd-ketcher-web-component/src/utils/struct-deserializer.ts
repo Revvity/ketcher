@@ -9,6 +9,8 @@ import {
   GenerateImageOptions,
 } from 'ketcher-core';
 import { IKCGenerateImageOptions, IKCNullable } from '../kc-types';
+import { buildSvgElement, makeIdsUnique, svgElemToSvgString } from './svg-utils';
+import { base64Decode, base64Encode } from './base64';
 
 export function findMarkushShadows(struct: Struct): Map<number, number[]> | null {
   let result: Map<number, number[]> | null = null;
@@ -91,5 +93,17 @@ export async function generateImageAsBase64(
   options?: IKCGenerateImageOptions | undefined,
 ): Promise<string> {
   const srv = await StructServiceCreator.getStructService();
-  return srv.generateImageAsBase64(data, options as GenerateImageOptions);
+  const svgString = await srv.generateImageAsBase64(data, options as GenerateImageOptions);
+  if (!svgString) {
+    return '';
+  }
+
+  const svgElem = buildSvgElement(base64Decode(svgString));
+  if (!svgElem) {
+    return '';
+  }
+
+  const uniqueIdsElement = makeIdsUnique(svgElem);
+
+  return base64Encode(svgElemToSvgString(uniqueIdsElement));
 }
