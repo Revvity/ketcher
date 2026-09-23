@@ -88,22 +88,42 @@ export class StructDeserializer {
   }
 }
 
-export async function generateImageAsBase64(
+export async function generateSVGElement(
   data: string,
   options?: IKCGenerateImageOptions | undefined,
-): Promise<string> {
+): Promise<IKCNullable<SVGSVGElement>> {
   const srv = await StructServiceCreator.getStructService();
   const svgString = await srv.generateImageAsBase64(data, options as GenerateImageOptions);
   if (!svgString) {
-    return '';
+    return null;
   }
 
   const svgElem = buildSvgElement(base64Decode(svgString));
   if (!svgElem) {
-    return '';
+    return null;
   }
 
-  const uniqueIdsElement = makeIdsUnique(svgElem);
+  return makeIdsUnique(svgElem);
+}
 
-  return base64Encode(svgElemToSvgString(uniqueIdsElement));
+export async function generateImageAsBase64(
+  data: string,
+  options?: IKCGenerateImageOptions | undefined,
+): Promise<string> {
+  const svgElement = await generateSVGElement(data, options);
+  if (!svgElement) {
+    return '';
+  }
+  return base64Encode(svgElemToSvgString(svgElement));
+}
+
+export async function generateImageAsString(
+  data: string,
+  options?: IKCGenerateImageOptions | undefined,
+): Promise<string> {
+  const svgElement = await generateSVGElement(data, options);
+  if (!svgElement) {
+    return '';
+  }
+  return svgElemToSvgString(svgElement);
 }

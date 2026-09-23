@@ -159,6 +159,14 @@ declare global {
         molFile: string,
         options?: IKCGenerateImageOptions,
       ) => Promise<string>;
+      generateImageAsString: (
+        molFile: string,
+        options?: IKCGenerateImageOptions,
+      ) => Promise<string>;
+      generateImageAsSvgElement: (
+        molFile: string,
+        options?: IKCGenerateImageOptions,
+      ) => Promise<IKCNullable<SVGSVGElement>>;
       registerRenderer: () => Promise<void>;
       registerEditor: () => Promise<void>;
       registerPeriodicTable: () => Promise<void>;

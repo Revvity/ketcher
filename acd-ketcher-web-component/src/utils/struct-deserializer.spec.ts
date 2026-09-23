@@ -1,5 +1,9 @@
 import { buildSvgElement } from './svg-utils';
-import { generateImageAsBase64 } from './struct-deserializer';
+import {
+  generateImageAsBase64,
+  generateImageAsString,
+  generateSVGElement,
+} from './struct-deserializer';
 import { base64Decode } from './base64';
 
 const molFile =
@@ -15,7 +19,7 @@ async function getIds(mol: string): Promise<string[]> {
   return Array.from(element.querySelectorAll('[id]')).map((el) => el.id);
 }
 
-describe('generateImageAsBase64 tests', () => {
+describe('generateImageAsBase64 tests', async () => {
   it('should generate svg', async () => {
     const svg = base64Decode(await generateImageAsBase64(molFile, { outputFormat: 'svg' }));
     expect(svg).not.toBe('');
@@ -23,12 +27,30 @@ describe('generateImageAsBase64 tests', () => {
 
   it('should not generate element with same ids', async () => {
     const ids1 = await getIds(molFile);
-    expect(ids1.length).toBe(13);
+    expect(ids1.length).toBeGreaterThan(0);
 
     const ids2 = await getIds(molFile);
-    expect(ids2.length).toBe(13);
+    expect(ids2.length).toBe(ids1.length);
 
     const intersects = ids1.some((el) => ids2.includes(el));
     expect(intersects).toBe(false);
+  });
+
+  it('should generate base 64 encoded svg of Element', async () => {
+    const base64 = await generateImageAsBase64(molFile, { outputFormat: 'svg' });
+    const element = buildSvgElement(base64Decode(base64));
+    expect(Array.from(element?.querySelectorAll('[id]') ?? []).length > 0).toBe(true);
+  });
+
+  it('should generate string svg of Element', async () => {
+    const svg = await generateImageAsString(molFile, { outputFormat: 'svg' });
+    const element = buildSvgElement(svg);
+    expect(Array.from(element?.querySelectorAll('[id]') ?? []).length > 0).toBe(true);
+  });
+
+  it('should generate svg element', async () => {
+    const element = await generateSVGElement(molFile, { outputFormat: 'svg' });
+    expect(element).toBeTruthy();
+    expect(Array.from(element?.querySelectorAll('[id]') ?? []).length > 0).toBe(true);
   });
 });

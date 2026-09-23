@@ -54,8 +54,26 @@ const generateImageAsBase64 = (molFile: string, options?: IKCGenerateImageOption
   );
 };
 
+const generateImageAsString = (molFile: string, options?: IKCGenerateImageOptions) => {
+  // eslint-disable-next-line camelcase
+  __webpack_public_path__ = window.KETCHER_STATIC_RESOURCES_URL ?? '';
+
+  return import('./utils/struct-deserializer').then((m) =>
+    m.generateImageAsString(molFile, options),
+  );
+};
+
+const generateImageAsSvgElement = (molFile: string, options?: IKCGenerateImageOptions) => {
+  // eslint-disable-next-line camelcase
+  __webpack_public_path__ = window.KETCHER_STATIC_RESOURCES_URL ?? '';
+
+  return import('./utils/struct-deserializer').then((m) => m.generateSVGElement(molFile, options));
+};
+
 window.acdKetcher = {
   generateImageAsBase64,
+  generateImageAsString,
+  generateImageAsSvgElement,
   registerRenderer,
   registerEditor,
   registerPeriodicTable,
