@@ -245,7 +245,7 @@ class IndigoService implements StructService {
   constructor(defaultOptions: StructServiceOptions) {
     this.defaultOptions = defaultOptions;
     this.worker = indigoWorker;
-    this.worker.onmessage = this.onmessage;
+    this.worker.addEventListener('message', this.onmessage);
   }
 
   public addKetcherId(ketcherId: string) {
@@ -342,8 +342,8 @@ class IndigoService implements StructService {
       const action = ({ data }: OutputMessageWrapper) => {
         console.log('convert action', data);
         const msg: OutputMessage<string> = data;
-        this.EE.removeListener(WorkerEvent.Convert, action);
         if (msg.inputData === struct) {
+          this.EE.removeListener(WorkerEvent.Convert, action);
           if (!msg.hasError) {
             const result: ConvertResult = {
               struct: msg.payload,
@@ -386,7 +386,6 @@ class IndigoService implements StructService {
 
       this.EE.addListener(WorkerEvent.Convert, action);
 
-      this.worker.onmessage = this.onmessage.bind(this);
       this.worker.postMessage(inputMessage);
     });
   }
@@ -812,7 +811,6 @@ class IndigoService implements StructService {
 
       this.EE.addListener(WorkerEvent.GenerateImageAsBase64, action);
 
-      this.worker.onmessage = this.onmessage.bind(this);
       this.worker.postMessage(inputMessage);
     });
   }
@@ -895,8 +893,8 @@ class IndigoService implements StructService {
   }
 
   public destroy() {
+    this.worker.removeEventListener('message', this.onmessage);
     this.worker.terminate();
-    this.worker.onmessage = null;
   }
 }
 
