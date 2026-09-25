@@ -226,24 +226,26 @@ class IndigoService implements StructService {
   private readonly EE: EventEmitter = new EventEmitter();
   private ketcherId: string | null = null;
 
+  private readonly onmessage = (e: MessageEvent<OutputMessage<string>>) => {
+    if (e.data.type === Command.Info) {
+      const callbackMethod = process.env.SEPARATE_INDIGO_RENDER
+        ? this.callIndigoNoRenderLoadedCallback
+        : this.callIndigoLoadedCallback;
+
+      callbackMethod();
+    }
+
+    const message: OutputMessage<string> = e.data;
+    if (message.type !== undefined) {
+      const event = messageTypeToEventMapping[message.type];
+      this.EE.emit(event, { data: message });
+    }
+  };
+
   constructor(defaultOptions: StructServiceOptions) {
     this.defaultOptions = defaultOptions;
     this.worker = indigoWorker;
-    this.worker.onmessage = (e: MessageEvent<OutputMessage<string>>) => {
-      if (e.data.type === Command.Info) {
-        const callbackMethod = process.env.SEPARATE_INDIGO_RENDER
-          ? this.callIndigoNoRenderLoadedCallback
-          : this.callIndigoLoadedCallback;
-
-        callbackMethod();
-      }
-
-      const message: OutputMessage<string> = e.data;
-      if (message.type !== undefined) {
-        const event = messageTypeToEventMapping[message.type];
-        this.EE.emit(event, { data: message });
-      }
-    };
+    this.worker.onmessage = this.onmessage;
   }
 
   public addKetcherId(ketcherId: string) {
@@ -340,6 +342,7 @@ class IndigoService implements StructService {
       const action = ({ data }: OutputMessageWrapper) => {
         console.log('convert action', data);
         const msg: OutputMessage<string> = data;
+        this.EE.removeListener(WorkerEvent.Convert, action);
         if (msg.inputData === struct) {
           if (!msg.hasError) {
             const result: ConvertResult = {
@@ -381,9 +384,9 @@ class IndigoService implements StructService {
         data: commandData,
       };
 
-      this.EE.removeListener(WorkerEvent.Convert, action);
       this.EE.addListener(WorkerEvent.Convert, action);
 
+      this.worker.onmessage = this.onmessage.bind(this);
       this.worker.postMessage(inputMessage);
     });
   }
@@ -809,6 +812,7 @@ class IndigoService implements StructService {
 
       this.EE.addListener(WorkerEvent.GenerateImageAsBase64, action);
 
+      this.worker.onmessage = this.onmessage.bind(this);
       this.worker.postMessage(inputMessage);
     });
   }
