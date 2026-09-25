@@ -1,16 +1,16 @@
 import {
-  Struct,
-  MolSerializer,
-  StructServiceProvider,
-  DefaultStructServiceOptions,
   ChemicalMimeType,
-  KetSerializer,
-  StructService,
+  DefaultStructServiceOptions,
   GenerateImageOptions,
+  KetSerializer,
+  MolSerializer,
+  Struct,
+  StructService,
+  StructServiceProvider,
 } from 'ketcher-core';
-import { IKCGenerateImageOptions, IKCNullable } from '../kc-types';
-import { buildSvgElement, makeIdsUnique, svgElemToSvgString } from './svg-utils';
-import { base64Decode, base64Encode } from './base64';
+import {IKCGenerateImageOptions, IKCNullable} from '../kc-types';
+import {buildSvgElement, makeIdsUnique, svgElemToSvgString} from './svg-utils';
+import {base64Decode, base64Encode} from './base64';
 
 export function findMarkushShadows(struct: Struct): Map<number, number[]> | null {
   let result: Map<number, number[]> | null = null;
@@ -88,12 +88,22 @@ export class StructDeserializer {
   }
 }
 
+async function generateBase64Image(data: string, options?: IKCGenerateImageOptions): Promise<string> {
+  const srv = await StructServiceCreator.getStructService();
+  return srv.generateImageAsBase64(data, options as GenerateImageOptions);
+}
+
 export async function generateSVGElement(
   data: string,
   options?: IKCGenerateImageOptions | undefined,
 ): Promise<IKCNullable<SVGSVGElement>> {
-  const srv = await StructServiceCreator.getStructService();
-  const svgString = await srv.generateImageAsBase64(data, options as GenerateImageOptions);
+  if (!options) {
+    options = { outputFormat: 'svg' };
+  } else if (options.outputFormat === 'png') {
+    options.outputFormat = 'svg';
+  }
+
+  const svgString = await generateBase64Image(data, options);
   if (!svgString) {
     return null;
   }
@@ -106,10 +116,18 @@ export async function generateSVGElement(
   return makeIdsUnique(svgElem);
 }
 
+// todo<troits>: check logic; check tests
 export async function generateImageAsBase64(
   data: string,
   options?: IKCGenerateImageOptions | undefined,
 ): Promise<string> {
+  if (!options) {
+    options = { outputFormat: 'svg' };
+  }
+  if (options.outputFormat === 'png') {
+    return generateBase64Image(data, options);
+  }
+
   const svgElement = await generateSVGElement(data, options);
   if (!svgElement) {
     return '';
@@ -121,6 +139,14 @@ export async function generateImageAsString(
   data: string,
   options?: IKCGenerateImageOptions | undefined,
 ): Promise<string> {
+  if (!options) {
+    options = { outputFormat: 'svg' };
+  }
+  if (options.outputFormat === 'png') {
+    const base64Image = await generateBase64Image(data, options);
+    return base64Decode(base64Image);
+  }
+
   const svgElement = await generateSVGElement(data, options);
   if (!svgElement) {
     return '';
