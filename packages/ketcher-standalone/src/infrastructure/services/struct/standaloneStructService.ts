@@ -78,7 +78,7 @@ import {
 } from './constants';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import { indigoWorker } from '_indigo-worker-import-alias_';
+import { createIndigoWorker } from '_indigo-worker-import-alias_';
 
 interface KeyValuePair {
   [key: string]: number | string | boolean | object;
@@ -222,19 +222,11 @@ const messageTypeToEventMapping: {
 
 class IndigoService implements StructService {
   private readonly defaultOptions: StructServiceOptions;
-  private worker: Worker;
+  private worker = createIndigoWorker();
   private readonly EE: EventEmitter = new EventEmitter();
   private ketcherId: string | null = null;
 
-  // todo<troits>: post indigoId to each message (this.indigoId), update types in indigoWorker.types.ts and worker code indigoWorker.ts
-  // private readonly indigoId: string;
-  // private static indigoIdCounter = 0;
-
-  // todo<troits>: we can use shared worker with this constant, check if correct
-  private static activeIndigoServiceCounter = 0;
-
   private readonly onmessage = (e: MessageEvent<OutputMessage<string>>) => {
-    // todo<troits>: use indigoId, return if e.data.indigoId !== this.indigoId
     if (e.data.type === Command.Info) {
       const callbackMethod = process.env.SEPARATE_INDIGO_RENDER
         ? this.callIndigoNoRenderLoadedCallback
@@ -251,10 +243,7 @@ class IndigoService implements StructService {
   };
 
   constructor(defaultOptions: StructServiceOptions) {
-    // this.indigoId = ++IndigoService.indigoIdCounter;
-    IndigoService.activeIndigoServiceCounter++;
     this.defaultOptions = defaultOptions;
-    this.worker = indigoWorker;
     this.worker.addEventListener('message', this.onmessage);
   }
 
@@ -309,7 +298,6 @@ class IndigoService implements StructService {
       this.EE.removeListener(WorkerEvent.GetInChIKey, action);
       this.EE.addListener(WorkerEvent.GetInChIKey, action);
 
-      // todo<troits>: post indigoId to each message (this.indigoId), update types in indigoWorker.types.ts and worker code indigoWorker.ts
       this.worker.postMessage(inputMessage);
     });
   }
@@ -905,10 +893,8 @@ class IndigoService implements StructService {
 
   public destroy() {
     this.worker.removeEventListener('message', this.onmessage);
-    IndigoService.activeIndigoServiceCounter--;
-    if (IndigoService.activeIndigoServiceCounter === 0) {
-      this.worker.terminate();
-    }
+    this.worker.terminate();
+    this.worker = null;
   }
 }
 
