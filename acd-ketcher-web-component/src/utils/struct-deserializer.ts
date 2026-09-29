@@ -8,9 +8,9 @@ import {
   StructService,
   StructServiceProvider,
 } from 'ketcher-core';
-import {IKCGenerateImageOptions, IKCNullable} from '../kc-types';
-import {buildSvgElement, makeIdsUnique, svgElemToSvgString} from './svg-utils';
-import {base64Decode, base64Encode} from './base64';
+import { IKCGenerateImageOptions, IKCNullable } from '../kc-types';
+import { buildSvgElement, makeIdsUnique, svgElemToSvgString } from './svg-utils';
+import { base64Decode, base64Encode } from './base64';
 
 export function findMarkushShadows(struct: Struct): Map<number, number[]> | null {
   let result: Map<number, number[]> | null = null;
@@ -88,7 +88,10 @@ export class StructDeserializer {
   }
 }
 
-async function generateBase64Image(data: string, options?: IKCGenerateImageOptions): Promise<string> {
+async function generateBase64Image(
+  data: string,
+  options?: IKCGenerateImageOptions,
+): Promise<string> {
   const srv = await StructServiceCreator.getStructService();
   return srv.generateImageAsBase64(data, options as GenerateImageOptions);
 }
@@ -116,7 +119,6 @@ export async function generateSVGElement(
   return makeIdsUnique(svgElem);
 }
 
-// todo<troits>: check logic; check tests
 export async function generateImageAsBase64(
   data: string,
   options?: IKCGenerateImageOptions | undefined,
