@@ -78,7 +78,7 @@ import {
 } from './constants';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import { indigoWorker } from '_indigo-worker-import-alias_';
+import { createIndigoWorker } from '_indigo-worker-import-alias_';
 
 interface KeyValuePair {
   [key: string]: number | string | boolean | object;
@@ -222,28 +222,29 @@ const messageTypeToEventMapping: {
 
 class IndigoService implements StructService {
   private readonly defaultOptions: StructServiceOptions;
-  private worker: Worker;
+  private worker = createIndigoWorker();
   private readonly EE: EventEmitter = new EventEmitter();
   private ketcherId: string | null = null;
 
+  private readonly onmessage = (e: MessageEvent<OutputMessage<string>>) => {
+    if (e.data.type === Command.Info) {
+      const callbackMethod = process.env.SEPARATE_INDIGO_RENDER
+        ? this.callIndigoNoRenderLoadedCallback
+        : this.callIndigoLoadedCallback;
+
+      callbackMethod();
+    }
+
+    const message: OutputMessage<string> = e.data;
+    if (message.type !== undefined) {
+      const event = messageTypeToEventMapping[message.type];
+      this.EE.emit(event, { data: message });
+    }
+  };
+
   constructor(defaultOptions: StructServiceOptions) {
     this.defaultOptions = defaultOptions;
-    this.worker = indigoWorker;
-    this.worker.onmessage = (e: MessageEvent<OutputMessage<string>>) => {
-      if (e.data.type === Command.Info) {
-        const callbackMethod = process.env.SEPARATE_INDIGO_RENDER
-          ? this.callIndigoNoRenderLoadedCallback
-          : this.callIndigoLoadedCallback;
-
-        callbackMethod();
-      }
-
-      const message: OutputMessage<string> = e.data;
-      if (message.type !== undefined) {
-        const event = messageTypeToEventMapping[message.type];
-        this.EE.emit(event, { data: message });
-      }
-    };
+    this.worker.addEventListener('message', this.onmessage);
   }
 
   public addKetcherId(ketcherId: string) {
@@ -341,6 +342,7 @@ class IndigoService implements StructService {
         console.log('convert action', data);
         const msg: OutputMessage<string> = data;
         if (msg.inputData === struct) {
+          this.EE.removeListener(WorkerEvent.Convert, action);
           if (!msg.hasError) {
             const result: ConvertResult = {
               struct: msg.payload,
@@ -381,7 +383,6 @@ class IndigoService implements StructService {
         data: commandData,
       };
 
-      this.EE.removeListener(WorkerEvent.Convert, action);
       this.EE.addListener(WorkerEvent.Convert, action);
 
       this.worker.postMessage(inputMessage);
@@ -891,8 +892,9 @@ class IndigoService implements StructService {
   }
 
   public destroy() {
+    this.worker.removeEventListener('message', this.onmessage);
     this.worker.terminate();
-    this.worker.onmessage = null;
+    this.worker = null;
   }
 }
 

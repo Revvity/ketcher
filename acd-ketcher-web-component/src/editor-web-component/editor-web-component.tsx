@@ -64,6 +64,7 @@ class EditorWebComponent extends HTMLElement implements IKCEditor {
             this.initializeKetcher().catch(console.error);
           }}
           onUnmount={() => {
+            window.ketcher.structService?.destroy?.();
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             window.ketcher = null!;
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

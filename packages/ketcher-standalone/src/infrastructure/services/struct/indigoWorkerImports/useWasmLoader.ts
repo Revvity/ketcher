@@ -6,4 +6,4 @@
 // @ts-ignore
 import IndigoWorker from 'web-worker:./../indigoWorker';
 
-export const indigoWorker = new IndigoWorker();
+export const createIndigoWorker = () => new IndigoWorker();
