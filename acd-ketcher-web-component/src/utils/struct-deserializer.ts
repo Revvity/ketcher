@@ -1,12 +1,12 @@
 import {
-  Struct,
-  MolSerializer,
-  StructServiceProvider,
-  DefaultStructServiceOptions,
   ChemicalMimeType,
-  KetSerializer,
-  StructService,
+  DefaultStructServiceOptions,
   GenerateImageOptions,
+  KetSerializer,
+  MolSerializer,
+  Struct,
+  StructService,
+  StructServiceProvider,
 } from 'ketcher-core';
 import { IKCGenerateImageOptions, IKCNullable } from '../kc-types';
 import { buildSvgElement, makeIdsUnique, svgElemToSvgString } from './svg-utils';
@@ -88,22 +88,70 @@ export class StructDeserializer {
   }
 }
 
-export async function generateImageAsBase64(
+async function generateBase64Image(
   data: string,
-  options?: IKCGenerateImageOptions | undefined,
+  options?: IKCGenerateImageOptions,
 ): Promise<string> {
   const srv = await StructServiceCreator.getStructService();
-  const svgString = await srv.generateImageAsBase64(data, options as GenerateImageOptions);
+  return srv.generateImageAsBase64(data, options as GenerateImageOptions);
+}
+
+export async function generateSVGElement(
+  data: string,
+  options?: IKCGenerateImageOptions | undefined,
+): Promise<IKCNullable<SVGSVGElement>> {
+  if (!options) {
+    options = { outputFormat: 'svg' };
+  } else if (options.outputFormat === 'png') {
+    options.outputFormat = 'svg';
+  }
+
+  const svgString = await generateBase64Image(data, options);
   if (!svgString) {
-    return '';
+    return null;
   }
 
   const svgElem = buildSvgElement(base64Decode(svgString));
   if (!svgElem) {
-    return '';
+    return null;
   }
 
-  const uniqueIdsElement = makeIdsUnique(svgElem);
+  return makeIdsUnique(svgElem);
+}
 
-  return base64Encode(svgElemToSvgString(uniqueIdsElement));
+export async function generateImageAsBase64(
+  data: string,
+  options?: IKCGenerateImageOptions | undefined,
+): Promise<string> {
+  if (!options) {
+    options = { outputFormat: 'svg' };
+  }
+  if (options.outputFormat === 'png') {
+    return generateBase64Image(data, options);
+  }
+
+  const svgElement = await generateSVGElement(data, options);
+  if (!svgElement) {
+    return '';
+  }
+  return base64Encode(svgElemToSvgString(svgElement));
+}
+
+export async function generateImageAsString(
+  data: string,
+  options?: IKCGenerateImageOptions | undefined,
+): Promise<string> {
+  if (!options) {
+    options = { outputFormat: 'svg' };
+  }
+  if (options.outputFormat === 'png') {
+    const base64Image = await generateBase64Image(data, options);
+    return base64Decode(base64Image);
+  }
+
+  const svgElement = await generateSVGElement(data, options);
+  if (!svgElement) {
+    return '';
+  }
+  return svgElemToSvgString(svgElement);
 }
