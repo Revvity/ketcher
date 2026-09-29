@@ -1,6 +1,6 @@
 {
   "name": "@acd/ketcher",
-  "version": "3.4.5",
+  "version": "3.5.0",
   "private": false,
   "license": "MIT",
   "description": "ACD/Labs Ketcher web component",
