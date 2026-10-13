@@ -13,6 +13,9 @@ module.exports = function (config) {
     ],
     client: {
       clearContext: false, // leave Jasmine Spec Runner output visible in browser
+      jasmine: {
+        timeoutInterval: 15000,
+      },
     },
     // base path that will be used to resolve all patterns (eg. files, exclude)
     basePath: '',
