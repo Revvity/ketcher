@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/typescript-node
+FROM node:18.19.1
 
 RUN apt-get update \
     && apt-get install -y curl gnupg ca-certificates --no-install-recommends \

@@ -186,7 +186,7 @@ describe('KetcherRendererWebComponent', () => {
     element.fontLabelRatio = 1.5;
     await renderStructure(element, catechinAssigned.testData.model);
     const result = await compareSvg(getSvg(element), catechin.catechinWithFontLabelRatio);
-    // await result.saveToFile('catechin-font-label-ratio.svg');
+    // await result.saveToFile('catechin-font-label-ratio');
     expect(result.misMatchPercentage).toBeLessThanOrEqual(COMPARISON_THRESHOLD);
   });
 
@@ -198,7 +198,7 @@ describe('KetcherRendererWebComponent', () => {
     const result = await compareSvg(getSvg(element), catechin.catechinWithFixedMinSize);
     expect(result.misMatchPercentage).toBeLessThanOrEqual(COMPARISON_THRESHOLD);
     // await result.saveToFile('catechin-fixed-min-size');
-    expect(element.style.minWidth).toBe('412.843px');
+    expect(element.style.minWidth).toBe('413.279px');
     expect(element.style.minHeight).toBe('268.727px');
   });
 
